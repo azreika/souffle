@@ -151,6 +151,10 @@ void DebugReport::print(std::ostream& out) const {
     out << "</html>\n";
 }
 
+// TODO: potentially change this; maybe only run right before debug report printing
+// TODO: get rid of transformer and add a comment saying its been changed when printing?
+// TODO: only run with a pragma thing?
+// TODO: if unchanged, move this back to DbeugReport.h?
 DebugReporter::DebugReporter(std::unique_ptr<AstTransformer> wrappedTransformer)
         : wrappedTransformer(std::make_unique<PipelineTransformer>(
                   std::make_unique<RenameInvalidIdentifiersTransformer>(), std::move(wrappedTransformer))) {}
