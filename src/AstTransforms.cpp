@@ -565,6 +565,19 @@ bool RemoveBooleanConstraintsTransformer::transform(AstTranslationUnit& translat
     return changed;
 }
 
+bool RenameInvalidIdentifiersTransformer::transform(AstTranslationUnit& translationUnit) {
+     bool changed = false;
+     AstProgram& program = *translationUnit.getProgram();
+
+     // TODO: handle variables
+
+     // TODO: handle type identifiers
+
+     // TODO: handle relation identifiers
+
+     return changed;
+}
+
 bool PartitionBodyLiteralsTransformer::transform(AstTranslationUnit& translationUnit) {
     bool changed = false;
     AstProgram& program = *translationUnit.getProgram();

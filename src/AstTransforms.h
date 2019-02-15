@@ -231,6 +231,19 @@ public:
 };
 
 /**
+ * Transformation pass to rename variables, relations, and types with invalid names.
+ */
+class RenameInvalidIdentifiersTransformer : public AstTransformer {
+private:
+    bool transform(AstTranslationUnit& translationUnit) override;
+
+public:
+    std::string getName() const override {
+        return "RenameInvalidIdentifiersTransformer";
+    }
+}
+
+/**
  * Transformation pass to inline marked relations
  */
 class InlineRelationsTransformer : public AstTransformer {
