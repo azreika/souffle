@@ -15,6 +15,7 @@
  ***********************************************************************/
 
 #include "DebugReport.h"
+#include "AstTransforms.h"
 #include "AstTranslationUnit.h"
 #include "AstTypeAnalysis.h"
 #include "AstTypeEnvironmentAnalysis.h"
@@ -149,6 +150,10 @@ void DebugReport::print(std::ostream& out) const {
     out << "</body>\n";
     out << "</html>\n";
 }
+
+DebugReporter::DebugReporter(std::unique_ptr<AstTransformer> wrappedTransformer)
+        : wrappedTransformer(std::make_unique<PipelineTransformer>(
+                  std::make_unique<RenameInvalidIdentifiersTransformer>(), std::move(wrappedTransformer))) {}
 
 DebugReportSection DebugReporter::getCodeSection(const std::string& id, std::string title, std::string code) {
     std::stringstream codeHTML;

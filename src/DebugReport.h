@@ -117,8 +117,7 @@ private:
     bool transform(AstTranslationUnit& translationUnit) override;
 
 public:
-    DebugReporter(std::unique_ptr<AstTransformer> wrappedTransformer)
-            : wrappedTransformer(std::move(wrappedTransformer)) {}
+    DebugReporter(std::unique_ptr<AstTransformer> wrappedTransformer);
 
     void setDebugReport() override {}
 
