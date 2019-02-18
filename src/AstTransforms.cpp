@@ -566,16 +566,48 @@ bool RemoveBooleanConstraintsTransformer::transform(AstTranslationUnit& translat
 }
 
 bool RenameInvalidIdentifiersTransformer::transform(AstTranslationUnit& translationUnit) {
-     bool changed = false;
-     AstProgram& program = *translationUnit.getProgram();
+    bool changed = false;
+    AstProgram& program = *translationUnit.getProgram();
 
-     // TODO: handle variables
+    auto renameVariable = [&](const std::string& name, const std::set<std::string> existingNames) {
+        std::string res = "";
 
-     // TODO: handle type identifiers
+        // first character must be alpha, '_', or '?'
+        size_t idx = 0;
+        while (idx < name.length()) {
+            char chr = name[idx];
+            if (chr == '_' || chr == '?' || isalpha(chr)) {
+                break;
+            }
+            idx++;
+        }
 
-     // TODO: handle relation identifiers
+        // remaining letters must be alphanum, '_', or '?'
+        for (/* idx */; idx < name.length(); idx++) {
+            char chr = name[idx];
+            if (chr == '_' || chr == '?' || isalnum(chr)) {
+                res += chr;
+            }
+        }
 
-     return changed;
+        // handle corner cases
+        if (res == "_" || res == "") {
+            res = "__tmp";
+        }
+
+        // check if name already exists
+        // TODO: do this
+
+        return res;
+    };
+
+    // TODO: handle variables
+
+    // TODO: handle type identifiers
+
+    // TODO: handle relation identifiers
+
+    return changed;
 }
 
 bool PartitionBodyLiteralsTransformer::transform(AstTranslationUnit& translationUnit) {
