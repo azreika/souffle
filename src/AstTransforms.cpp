@@ -765,7 +765,26 @@ bool PartitionBodyLiteralsTransformer::transform(AstTranslationUnit& translation
 }
 
 bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUnit) {
-    return false;
+    /*
+     * Algorithm:
+     * Go through each rule R in the program.
+     *      Create a dependency graph for the variables in R.
+     *      Find the connected components [C] for the variables in the head of R.
+     *      If [C].len < 2, then stop - don't change the rule
+     *      Otherwise, go through each component C in [C]:
+     *          Create a new relation <cross_relation_i>([v]),
+     *              where [v] are the vars in C.
+     *      Replace all connected literals with the relation.
+     */
+
+    AstProgram& program = *translationUnit.getProgram();
+    for (AstRelation* rel : program.getRelations()) {
+        for (AstClause* clause : rel->getClauses()) {
+            // G = dependency graph for variables in R
+            // [C] = connected components for variables in R
+            // ...
+        }
+    }
 }
 
 bool ReduceExistentialsTransformer::transform(AstTranslationUnit& translationUnit) {
