@@ -764,6 +764,10 @@ bool PartitionBodyLiteralsTransformer::transform(AstTranslationUnit& translation
     return changed;
 }
 
+bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUnit) {
+    return false;
+}
+
 bool ReduceExistentialsTransformer::transform(AstTranslationUnit& translationUnit) {
     AstProgram& program = *translationUnit.getProgram();
 

@@ -263,6 +263,24 @@ private:
 };
 
 /**
+ * Transformation pass that splits cross-products into separate
+ * relations.
+ * E.g. a(x,y) :- b(x,z), c(z), d(y,r), e(r). is transformed into:
+ *      -  a(x) :- A1(x), A2(y).
+ *      - A1(x) :- b(x,z), c(z).
+ *      - A2(x) :- d(y,r), e(r).
+ */
+class SplitCrossProductsTransformer : public AstTransformer {
+public:
+    std::string getName() const override {
+        return "SplitCrossProductsTransformer";
+    }
+
+private:
+    bool transform(AstTranslationUnit& translationUnit) override;
+};
+
+/**
  * Transformation pass to reduce unnecessary computation for
  * relations that only appear in the form A(_,...,_).
  */
