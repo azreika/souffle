@@ -99,4 +99,43 @@ bool hasClauseWithAggregatedRelation(const AstRelation* relation, const AstRelat
     return false;
 }
 
+Graph<std::string> getVariableDependencyGraph(const AstClause* clause) {
+    // create an empty graph
+    Graph<std::string> variableGraph = Graph<std::string>();
+
+    // add in the nodes
+    // the nodes of G are the variables in the rule
+    visitDepthFirst(clause, [&](const AstVariable& var) {
+        variableGraph.insert(var.getName());
+    });
+
+    // add in the edges
+    // since the edge is undirected, it is enough to just add in an undirected
+    // edge from the first variable in the literal to each of the other variables.
+    std::vector<AstLiteral*> literalsToConsider = clause.getBodyLiterals();
+    literalsToConsider.push_back(clause.getHead());
+
+    for (AstClause* clauseLiteral : literalsToConsider) {
+        // store all the variables in the literal
+        std::set<std::string> literalVaraibles;
+        visitDepthFirst(*clauseLiteral, [&](const AstVariable& var) {
+            literalVariables.insert(var.getName());
+        });
+
+        // no new edges if only one variable is present
+        if (literalVariables.size() > 1) {
+            std::string firstVariable = *literalVariables.begin();
+            literalVariables.erase(literalVariables.begin());
+
+            // create the undirected edge
+            for (const std::string& var : literalVariables) {
+                variableGraph.insert(firstVariable, var);
+                variableGraph.insert(var, firstVariable);
+            }
+        }
+    }
+
+    return variableGraph;
+}
+
 }  // end of namespace souffle

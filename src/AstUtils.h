@@ -116,4 +116,15 @@ bool hasClauseWithNegatedRelation(const AstRelation* relation, const AstRelation
 bool hasClauseWithAggregatedRelation(const AstRelation* relation, const AstRelation* aggRelation,
         const AstProgram* program, const AstLiteral*& foundLiteral);
 
+/**
+ * Returns the variable dependency graph G of a clause C, where:
+ *      - the nodes of G are all the variables in C
+ *      - an undirected edge {v,w} exists iff v and w appear in a mutual literal,
+ *        and hence are dependent on each other
+ * Note: Variables are distinguished by their names.
+ * @param clause the clause to create the variable dependency graph for
+ * @return the variable dependency graph
+ */
+Graph<std::string> getVariableDependencyGraph(const AstClause* clause);
+
 }  // end of namespace souffle
