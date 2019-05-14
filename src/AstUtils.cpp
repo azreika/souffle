@@ -117,9 +117,9 @@ Graph<std::string> getVariableDependencyGraph(const AstClause& clause, bool incl
         literalsToConsider.push_back(clause.getHead());
     }
 
-    for (AstClause* clauseLiteral : literalsToConsider) {
+    for (AstLiteral* clauseLiteral : literalsToConsider) {
         // store all the variables in the literal
-        std::set<std::string> literalVaraibles;
+        std::set<std::string> literalVariables;
         visitDepthFirst(*clauseLiteral, [&](const AstVariable& var) {
             literalVariables.insert(var.getName());
         });

@@ -794,7 +794,7 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
         assert(connectedComponents.size() >= 2 && "impossible set size");
 
         // Partition the clause based on head-variable partitionings
-        std::vector<const AstLiteral*> handledLiterals;
+        std::set<const AstLiteral*> handledLiterals;
         std::vector<std::unique_ptr<AstAtom>> replacementAtoms;
         for (const auto& component : connectedComponents) {
             // --- Construct the associated relation ---
@@ -813,7 +813,7 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
 
             // Arguments of the relation are the arguments of the current
             // clause that are associated with this connected component
-            std::vector<AstArgument*> associatedHeadArguments;
+            std::vector<const AstArgument*> associatedHeadArguments;
             for (size_t i = 0; i < head.getArity(); i++) {
                 const auto* arg = head.getArgument(i);
                 bool associated = false;
@@ -824,7 +824,7 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
                 });
                 if (associated) {
                     AstAttribute* attribute = rel->getAttribute(i)->clone();
-                    newRelation.addAttribute(std::unique_ptr<AstAttribute>(attribute));
+                    newRelation->addAttribute(std::unique_ptr<AstAttribute>(attribute));
                     associatedHeadArguments.push_back(arg);
                 }
             }
@@ -838,9 +838,9 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
             // Construct the head
             auto associatedClauseHead = std::make_unique<AstAtom>(newRelationName);
             for (const auto* arg : associatedHeadArguments) {
-                associatedClauseHead.addArgument(std::unique_ptr<AstArgument>(arg->clone()));
+                associatedClauseHead->addArgument(std::unique_ptr<AstArgument>(arg->clone()));
             }
-            associatedClause.setHead(std::move(associatedClauseHead));
+            associatedClause->setHead(std::move(associatedClauseHead));
 
             // Add any associated body literals
             for (const auto* literal : clause.getBodyLiterals()) {
@@ -853,10 +853,10 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
 
                 if (associated) {
                     auto pos = handledLiterals.find(literal);
-                    assert(pos == handledLiterals.end && "literal already handled");
-                    handledLiterals.push_back(literal);
+                    assert(pos == handledLiterals.end() && "literal already handled");
+                    handledLiterals.insert(literal);
 
-                    associatedClause.addToBody(std::unique_ptr<AstLiteral>(literal->clone()));
+                    associatedClause->addToBody(std::unique_ptr<AstLiteral>(literal->clone()));
                 }
             }
 
@@ -866,18 +866,18 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
             // --- Construct the replacement atom ---
             auto replacementAtom = std::make_unique<AstAtom>(newRelationName);
             for (const auto* arg : associatedHeadArguments) {
-                replacementAtom.addArgument(std::unique_ptr<AstArgument>(arg->clone()));
+                replacementAtom->addArgument(std::unique_ptr<AstArgument>(arg->clone()));
             }
-            replacementAtoms.push_back(std::move(replacementAtom);
+            replacementAtoms.push_back(std::move(replacementAtom));
         }
 
         // Create replacement clause based on changes
         auto replacementClause = std::make_unique<AstClause>();
-        replacementClause.setHead(std::unique_ptr<AstAtom>(head->clone()));
+        replacementClause->setHead(std::unique_ptr<AstAtom>(head.clone()));
 
         // Add in all replacement atoms
         for (auto& replacementAtom : replacementAtoms) {
-            replacementClause.addToBody(std::move(replacementAtom));
+            replacementClause->addToBody(std::move(replacementAtom));
         }
 
         // Add in all unhandled literals
@@ -887,7 +887,7 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
                 continue;
             }
 
-            replacementClause.addToBody(std::unique_ptr<AstLiteral>(literal->clone()));
+            replacementClause->addToBody(std::unique_ptr<AstLiteral>(literal->clone()));
         }
 
         // Replace the old clause with the new one
