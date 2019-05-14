@@ -601,43 +601,13 @@ bool PartitionBodyLiteralsTransformer::transform(AstTranslationUnit& translation
 
     // The transformation is local to each rule, so can visit each independently
     visitDepthFirst(program, [&](const AstClause& clause) {
-        // Create the variable dependency graph G
-        Graph<std::string> variableGraph = Graph<std::string>();
         std::set<std::string> ruleVariables;
-
-        // Add in the nodes
-        // The nodes of G are the variables in the rule
         visitDepthFirst(clause, [&](const AstVariable& var) {
-            variableGraph.insert(var.getName());
             ruleVariables.insert(var.getName());
         });
 
-        // Add in the edges
-        // Since we are only looking at reachability in the final graph, it is
-        // enough to just add in an (undirected) edge from the first variable
-        // in the literal to each of the other variables.
-        std::vector<AstLiteral*> literalsToConsider = clause.getBodyLiterals();
-        literalsToConsider.push_back(clause.getHead());
-
-        for (AstLiteral* clauseLiteral : literalsToConsider) {
-            std::set<std::string> literalVariables;
-
-            // Store all variables in the literal
-            visitDepthFirst(
-                    *clauseLiteral, [&](const AstVariable& var) { literalVariables.insert(var.getName()); });
-
-            // No new edges if only one variable is present
-            if (literalVariables.size() > 1) {
-                std::string firstVariable = *literalVariables.begin();
-                literalVariables.erase(literalVariables.begin());
-
-                // Create the undirected edge
-                for (const std::string& var : literalVariables) {
-                    variableGraph.insert(firstVariable, var);
-                    variableGraph.insert(var, firstVariable);
-                }
-            }
-        }
+        // Create the variable dependency graph G
+        Graph<std::string> variableGraph = getVariableDependencyGraph(clause);
 
         // Find the connected components of G
         std::set<std::string> seenNodes;
@@ -778,13 +748,79 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
      */
 
     AstProgram& program = *translationUnit.getProgram();
-    for (AstRelation* rel : program.getRelations()) {
-        for (AstClause* clause : rel->getClauses()) {
-            // G = dependency graph for variables in R
-            // [C] = connected components for variables in R
-            // ...
+    visitDepthFirst(program, [&](const AstClause& clause) {
+        // Get relation name
+        AstRelationIdentifier relName = clause.getHead()->getName();
+
+        // Create the variable dependency graph G
+        Graph<std::string> variableGraph = getVariableDependencyGraph(clause, false);
+
+        // Find the connected components for each variable in the head
+        std::set<std::string> seenNodes;
+        std::set<std::set<std::string>> connectedComponents;
+        visitDepthFirst(*clause.getHead(), [&](const AstVariable& var) {
+            std::string varName = var.getName();
+
+            if (seenNodes.find(varName) != seenNodes.end()) {
+                // Already seen, so just exit
+                return;
+            }
+
+            // Compute the associated connected component
+            std::set<std::string> newComponent;
+            variableGraph.visitDepthFirst(varName, [&](const std::string& child) {
+                newComponent.insert(child);
+                seenNodes.insert(child);
+            });
+            connectedComponents.insert(newComponent);
+        });
+
+        if (connectedComponents.empty()) {
+            // No variables in the head, skip this clause
+            return;
         }
-    }
+
+        if (connectedComponents.size() == 1) {
+            // All variables in the head are inseparable
+            return;
+        }
+
+        // Therefore, two or more connected components
+        assert(connectedComponents.size() >= 2 && "impossible set size");
+
+        // Partition the clause based on head-variable partitionings
+        for (const auto& component : connectedComponents) {
+            // Come up with a unique new name for the relation
+            static int partitionCount = 0;
+            std::stringstream nextName;
+            nextName << "+cross_product" << partitionCount;
+            nextName << "_" << relName;
+            AstRelationIdentifier newRelationName = nextName.str();
+            partitionCount++;
+
+            // Create the new relation and rule for the component
+            // A_n([v]) <- [associated_lits_[v]].
+            auto newRelation = std::make_unique<AstRelation>();
+            newRelation->setName(newRelationName);
+            // TODO: add attributes to the relation
+            program.appendRelation(std::move(newRelation));
+
+            // TODO: create the clause with the necessary head arguments
+            // TODO: add associated body literals
+            // TODO: save it to be added
+
+            // TODO: create the replacement atom and store it
+        }
+
+        // TODO: create replacement clause based on replaceemnt arguments
+        // TODO: make sure to include disconnected body literals
+        // TODO: save teh replacement clause to be added
+        // TODO: save the original clause to be removed
+    });
+
+    // TODO: adjust the program
+
+    // TODO: return changed result
 }
 
 bool ReduceExistentialsTransformer::transform(AstTranslationUnit& translationUnit) {
