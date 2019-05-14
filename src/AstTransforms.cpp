@@ -762,9 +762,7 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
         // Add in intra-argument dependencies from the head
         for (const auto* arg : head.getArguments()) {
             std::set<std::string> argVars;
-            visitDepthFirst(*arg, [&](const AstVariable& var) {
-                argVars.insert(var.getName());
-            });
+            visitDepthFirst(*arg, [&](const AstVariable& var) { argVars.insert(var.getName()); });
 
             if (argVars.size() <= 1) {
                 // no new dependencies to add
