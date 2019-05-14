@@ -748,6 +748,7 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
      */
 
     AstProgram& program = *translationUnit.getProgram();
+    std::vector<std::unique_ptr<AstClause>> clausesToAdd;
     visitDepthFirst(program, [&](const AstClause& clause) {
         const auto& head = *clause.getHead();
 
@@ -793,6 +794,7 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
         assert(connectedComponents.size() >= 2 && "impossible set size");
 
         // Partition the clause based on head-variable partitionings
+        std::vector<const AstLiteral*> handledLiterals;
         for (const auto& component : connectedComponents) {
             // --- Construct the associated relation ---
             // Come up with a unique new name for the relation
@@ -810,6 +812,7 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
 
             // Arguments of the relation are the arguments of the current
             // clause that are associated with this connected component
+            std::vector<AstArgument*> associatedHeadArguments;
             for (size_t i = 0; i < head.getArity(); i++) {
                 const auto* arg = head.getArgument(i);
                 bool associated = false;
@@ -821,6 +824,7 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
                 if (associated) {
                     AstAttribute* attribute = rel->getAttribute(i)->clone();
                     newRelation.addAttribute(std::unique_ptr<AstAttribute>(attribute));
+                    associatedHeadArguments.push_back(arg);
                 }
             }
 
@@ -828,11 +832,37 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
             program.appendRelation(std::move(newRelation));
 
             // --- Construct the associated clause ---
+            auto associatedClause = std::make_unique<AstClause>();
 
-            // TODO: create the clause with the necessary head arguments
-            // TODO: add associated body literals
-            // TODO: save it to be added
+            // Construct the head
+            auto associatedClauseHead = std::make_unique<AstAtom>(newRelationName);
+            for (const auto* arg : associatedHeadArguments) {
+                associatedClauseHead.addArgument(std::unique_ptr<AstArgument>(arg->clone()));
+            }
+            associatedClause.setHead(std::move(associatedClauseHead));
 
+            // Add any associated body literals
+            for (const auto* literal : clause.getBodyLiterals()) {
+                bool associated = false;
+                visitDepthFirst(*literal, [&](const AstVariable& var) {
+                    if (component.find(var.getName()) != component.end()) {
+                        associated = true;
+                    }
+                });
+
+                if (associated) {
+                    auto pos = handledLiterals.find(literal);
+                    assert(pos == handledLiterals.end && "literal already handled");
+                    handledLiterals.push_back(literal);
+
+                    associatedClause.addToBody(std::unique_ptr<AstLiteral>(literal->clone()));
+                }
+            }
+
+            // Save it to be added later on
+            clausesToAdd.push_back(std::move(associatedClause));
+
+            // --- Construct the replacement atom ---
             // TODO: create the replacement atom and store it
         }
 
