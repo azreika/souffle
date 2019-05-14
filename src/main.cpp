@@ -420,6 +420,12 @@ int main(int argc, char** argv) {
     auto provenancePipeline = std::make_unique<PipelineTransformer>(std::make_unique<ConditionalTransformer>(
             Global::config().has("provenance"), std::make_unique<ProvenanceTransformer>()));
 
+    // Partitioning pipeline
+    auto partitioningPipeline = std::make_unique<PipelineTransformer>(
+            std::make_unique<PartitionBodyLiteralsTransformer>(),
+            std::make_unique<NormaliseFunctorsTransformer>(),
+            std::make_unique<SplitCrossProductsTransformer>(), std::make_unique<ResolveAliasesTransformer>());
+
     // Main pipeline
     auto pipeline = std::make_unique<PipelineTransformer>(std::make_unique<AstComponentChecker>(),
             std::make_unique<ComponentInstantiationTransformer>(),
@@ -435,9 +441,8 @@ int main(int argc, char** argv) {
             std::make_unique<FixpointTransformer>(
                     std::make_unique<PipelineTransformer>(std::make_unique<ReduceExistentialsTransformer>(),
                             std::make_unique<RemoveRedundantRelationsTransformer>())),
-            std::make_unique<RemoveRelationCopiesTransformer>(),
-            std::make_unique<PartitionBodyLiteralsTransformer>(),
-            std::make_unique<SplitCrossProductsTransformer>(), std::make_unique<MinimiseProgramTransformer>(),
+            std::make_unique<RemoveRelationCopiesTransformer>(), std::move(partitioningPipeline),
+            std::make_unique<MinimiseProgramTransformer>(),
             std::make_unique<RemoveRelationCopiesTransformer>(),
             std::make_unique<ReorderLiteralsTransformer>(),
             std::make_unique<MaterializeAggregationQueriesTransformer>(),
