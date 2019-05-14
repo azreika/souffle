@@ -1268,6 +1268,57 @@ bool NormaliseConstraintsTransformer::transform(AstTranslationUnit& translationU
     return changed;
 }
 
+bool NormaliseFunctorsTransformer::transform(AstTranslationUnit& translationUnit) {
+    struct FunctorNormaliser : public AstNodeMapper {
+        mutable std::vector<std::unique_ptr<AstConstraint>> constraintsToAdd;
+
+        bool hasChanged() const {
+            return !constraintsToAdd.empty();
+        }
+
+        std::unique_ptr<AstNode> operator()(std::unique_ptr<AstNode> node) const override {
+            // remove sub-functors first
+            node->apply(*this);
+
+            if (const auto* func = dynamic_cast<AstFunctor*>(node.get())) {
+                // create new variable name
+                static int changeCount = 0;
+                std::stringstream newVariableName;
+                newVariableName << "+norm_functor" << changeCount;
+                changeCount++;
+
+                // add constraint to bind the functor
+                auto newVariable = std::make_unique<AstVariable>(newVariableName.str());
+                constraintsToAdd.push_back(std::make_unique<AstBinaryConstraint>(BinaryConstraintOp::EQ,
+                        std::unique_ptr<AstArgument>(newVariable->clone()),
+                        std::unique_ptr<AstArgument>(func->clone())));
+
+                // replace functor with variable
+                return std::move(newVariable);
+            }
+
+            return node;
+        }
+    };
+
+    auto& program = *translationUnit.getProgram();
+    bool changed = false;
+
+    // apply to each clause separately
+    for (AstRelation* rel : program.getRelations()) {
+        for (AstClause* clause : rel->getClauses()) {
+            FunctorNormaliser update;
+            clause->apply(update);
+            for (auto& cstr : update.constraintsToAdd) {
+                clause->addToBody(std::move(cstr));
+            }
+            changed |= update.hasChanged();
+        }
+    }
+
+    return changed;
+}
+
 bool RemoveTypecastsTransformer::transform(AstTranslationUnit& translationUnit) {
     struct TypecastRemover : public AstNodeMapper {
         mutable bool changed{false};

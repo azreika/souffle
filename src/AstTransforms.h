@@ -337,6 +337,20 @@ private:
 };
 
 /**
+ * Transformation pass to normalise functors.
+ * E.g.: a(x+1) :- b(x+2), c(x). -> a(tmp0) :- b(tmp1), c(x), tmp0=x+1, tmp1=x+2.
+ */
+class NormaliseFunctorsTransformer : public AstTransformer {
+public:
+    std::string getName() const override {
+        return "NormaliseFunctorsTransformer";
+    }
+
+private:
+    bool transform(AstTranslationUnit& translationUnit) override;
+};
+
+/**
  * Magic Set Transformation
  */
 class MagicSetTransformer : public AstTransformer {
