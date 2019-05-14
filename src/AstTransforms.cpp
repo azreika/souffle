@@ -795,6 +795,7 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
 
         // Partition the clause based on head-variable partitionings
         std::vector<const AstLiteral*> handledLiterals;
+        std::vector<std::unique_ptr<AstAtom>> replacementAtoms;
         for (const auto& component : connectedComponents) {
             // --- Construct the associated relation ---
             // Come up with a unique new name for the relation
@@ -863,7 +864,11 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
             clausesToAdd.push_back(std::move(associatedClause));
 
             // --- Construct the replacement atom ---
-            // TODO: create the replacement atom and store it
+            auto replacementAtom = std::make_unique<AstAtom>(newRelationName);
+            for (const auto* arg : associatedHeadArguments) {
+                replacementAtom.addArgument(std::unique_ptr<AstArgument>(arg->clone()));
+            }
+            replacementAtoms.push_back(std::move(replacementAtom);
         }
 
         // TODO: create replacement clause based on replaceemnt arguments
