@@ -602,9 +602,7 @@ bool PartitionBodyLiteralsTransformer::transform(AstTranslationUnit& translation
     // The transformation is local to each rule, so can visit each independently
     visitDepthFirst(program, [&](const AstClause& clause) {
         std::set<std::string> ruleVariables;
-        visitDepthFirst(clause, [&](const AstVariable& var) {
-            ruleVariables.insert(var.getName());
-        });
+        visitDepthFirst(clause, [&](const AstVariable& var) { ruleVariables.insert(var.getName()); });
 
         // Create the variable dependency graph G
         Graph<std::string> variableGraph = getVariableDependencyGraph(clause);
@@ -735,6 +733,7 @@ bool PartitionBodyLiteralsTransformer::transform(AstTranslationUnit& translation
 }
 
 bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUnit) {
+    // TODO: add source locations
     /*
      * Algorithm:
      * Go through each rule R in the program.

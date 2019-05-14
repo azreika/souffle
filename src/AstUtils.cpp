@@ -105,9 +105,7 @@ Graph<std::string> getVariableDependencyGraph(const AstClause& clause, bool incl
 
     // add in the nodes
     // the nodes of G are the variables in the rule
-    visitDepthFirst(clause, [&](const AstVariable& var) {
-        variableGraph.insert(var.getName());
-    });
+    visitDepthFirst(clause, [&](const AstVariable& var) { variableGraph.insert(var.getName()); });
 
     // add in the edges
     // since the edge is undirected, it is enough to just add in an undirected
@@ -120,9 +118,8 @@ Graph<std::string> getVariableDependencyGraph(const AstClause& clause, bool incl
     for (AstLiteral* clauseLiteral : literalsToConsider) {
         // store all the variables in the literal
         std::set<std::string> literalVariables;
-        visitDepthFirst(*clauseLiteral, [&](const AstVariable& var) {
-            literalVariables.insert(var.getName());
-        });
+        visitDepthFirst(
+                *clauseLiteral, [&](const AstVariable& var) { literalVariables.insert(var.getName()); });
 
         // no new edges if only one variable is present
         if (literalVariables.size() > 1) {
