@@ -99,7 +99,7 @@ bool hasClauseWithAggregatedRelation(const AstRelation* relation, const AstRelat
     return false;
 }
 
-Graph<std::string> getVariableDependencyGraph(const AstClause* clause) {
+Graph<std::string> getVariableDependencyGraph(const AstClause& clause, bool includeHead) {
     // create an empty graph
     Graph<std::string> variableGraph = Graph<std::string>();
 
@@ -113,7 +113,9 @@ Graph<std::string> getVariableDependencyGraph(const AstClause* clause) {
     // since the edge is undirected, it is enough to just add in an undirected
     // edge from the first variable in the literal to each of the other variables.
     std::vector<AstLiteral*> literalsToConsider = clause.getBodyLiterals();
-    literalsToConsider.push_back(clause.getHead());
+    if (includeHead) {
+        literalsToConsider.push_back(clause.getHead());
+    }
 
     for (AstClause* clauseLiteral : literalsToConsider) {
         // store all the variables in the literal

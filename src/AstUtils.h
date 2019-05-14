@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include "GraphUtils.h"
+
 #include <set>
 #include <vector>
 
@@ -123,8 +125,9 @@ bool hasClauseWithAggregatedRelation(const AstRelation* relation, const AstRelat
  *        and hence are dependent on each other
  * Note: Variables are distinguished by their names.
  * @param clause the clause to create the variable dependency graph for
+ * @param includeHead include the head atom in the analysis
  * @return the variable dependency graph
  */
-Graph<std::string> getVariableDependencyGraph(const AstClause* clause);
+Graph<std::string> getVariableDependencyGraph(const AstClause& clause, bool includeHead = true);
 
 }  // end of namespace souffle
