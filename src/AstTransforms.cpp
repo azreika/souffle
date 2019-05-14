@@ -749,6 +749,7 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
 
     AstProgram& program = *translationUnit.getProgram();
     std::vector<std::unique_ptr<AstClause>> clausesToAdd;
+    std::vector<const AstClause*> clausesToRemove;
     visitDepthFirst(program, [&](const AstClause& clause) {
         const auto& head = *clause.getHead();
 
@@ -871,13 +872,38 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
             replacementAtoms.push_back(std::move(replacementAtom);
         }
 
-        // TODO: create replacement clause based on replaceemnt arguments
-        // TODO: make sure to include disconnected body literals
-        // TODO: save teh replacement clause to be added
-        // TODO: save the original clause to be removed
+        // Create replacement clause based on changes
+        auto replacementClause = std::make_unique<AstClause>();
+        replacementClause.setHead(std::unique_ptr<AstAtom>(head->clone()));
+
+        // Add in all replacement atoms
+        for (auto& replacementAtom : replacementAtoms) {
+            replacementClause.addToBody(std::move(replacementAtom));
+        }
+
+        // Add in all unhandled literals
+        for (const auto* literal : clause.getBodyLiterals()) {
+            if (handledLiterals.find(literal) != handledLiterals.end()) {
+                // already handled - move on
+                continue;
+            }
+
+            replacementClause.addToBody(std::unique_ptr<AstLiteral>(literal->clone()));
+        }
+
+        // Replace the old clause with the new one
+        clausesToAdd.push_back(std::move(replacementClause));
+        clausesToRemove.push_back(&clause);
     });
 
-    // TODO: adjust the program
+    // Adjust the program accordingly
+    for (auto& clause : clausesToAdd) {
+        program.appendClause(std::move(clause));
+    }
+
+    for (const auto* clause : clausesToRemove) {
+        program.removeClause(clause);
+    }
 
     // TODO: return changed result
 }
