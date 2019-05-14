@@ -746,7 +746,6 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
      *              where [v] are the vars in C.
      *      Replace all connected literals with the relation.
      */
-
     AstProgram& program = *translationUnit.getProgram();
     std::vector<std::unique_ptr<AstClause>> clausesToAdd;
     std::vector<const AstClause*> clausesToRemove;
@@ -897,15 +896,19 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
     });
 
     // Adjust the program accordingly
+    bool changed = false;
+
     for (auto& clause : clausesToAdd) {
         program.appendClause(std::move(clause));
+        changed = true;
     }
 
     for (const auto* clause : clausesToRemove) {
         program.removeClause(clause);
+        changed = true;
     }
 
-    // TODO: return changed result
+    return changed;
 }
 
 bool ReduceExistentialsTransformer::transform(AstTranslationUnit& translationUnit) {
