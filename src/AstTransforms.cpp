@@ -756,8 +756,29 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
         const AstRelation* rel = program.getRelation(relName);
         assert(rel != nullptr && "relation does not exist");
 
-        // Create the variable dependency graph G
+        // Create the variable dependency graph G, ignoring the head
         Graph<std::string> variableGraph = getVariableDependencyGraph(clause, false);
+
+        // Add in intra-argument dependencies from the head
+        for (const auto* arg : head.getArguments()) {
+            std::set<std::string> argVars;
+            visitDepthFirst(*arg, [&](const AstVariable& var) {
+                argVars.insert(var.getName());
+            });
+
+            if (argVars.size() <= 1) {
+                // no new dependencies to add
+                continue;
+            }
+
+            // Add in an undirected edge from one argument variable to all the others
+            std::string firstVariable = *argVars.begin();
+            argVars.erase(argVars.begin());
+            for (const std::string& argVar : argVars) {
+                variableGraph.insert(argVar, firstVariable);
+                variableGraph.insert(firstVariable, argVar);
+            }
+        }
 
         // Find the connected components for each variable in the head
         std::set<std::string> seenNodes;
