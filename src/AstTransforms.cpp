@@ -749,8 +749,12 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
 
     AstProgram& program = *translationUnit.getProgram();
     visitDepthFirst(program, [&](const AstClause& clause) {
-        // Get relation name
-        AstRelationIdentifier relName = clause.getHead()->getName();
+        const auto& head = *clause.getHead();
+
+        // Get relation and relation name
+        AstRelationIdentifier relName = head.getName();
+        const AstRelation* rel = program.getRelation(relName);
+        assert(rel != nullptr && "relation does not exist");
 
         // Create the variable dependency graph G
         Graph<std::string> variableGraph = getVariableDependencyGraph(clause, false);
@@ -758,7 +762,7 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
         // Find the connected components for each variable in the head
         std::set<std::string> seenNodes;
         std::set<std::set<std::string>> connectedComponents;
-        visitDepthFirst(*clause.getHead(), [&](const AstVariable& var) {
+        visitDepthFirst(head, [&](const AstVariable& var) {
             std::string varName = var.getName();
 
             if (seenNodes.find(varName) != seenNodes.end()) {
@@ -790,6 +794,7 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
 
         // Partition the clause based on head-variable partitionings
         for (const auto& component : connectedComponents) {
+            // --- Construct the associated relation ---
             // Come up with a unique new name for the relation
             static int partitionCount = 0;
             std::stringstream nextName;
@@ -802,8 +807,27 @@ bool SplitCrossProductsTransformer::transform(AstTranslationUnit& translationUni
             // A_n([v]) <- [associated_lits_[v]].
             auto newRelation = std::make_unique<AstRelation>();
             newRelation->setName(newRelationName);
-            // TODO: add attributes to the relation
+
+            // Arguments of the relation are the arguments of the current
+            // clause that are associated with this connected component
+            for (size_t i = 0; i < head.getArity(); i++) {
+                const auto* arg = head.getArgument(i);
+                bool associated = false;
+                visitDepthFirst(*arg, [&](const AstVariable& var) {
+                    if (component.find(var.getName()) != component.end()) {
+                        associated = true;
+                    }
+                });
+                if (associated) {
+                    AstAttribute* attribute = rel->getAttribute(i)->clone();
+                    newRelation.addAttribute(std::unique_ptr<AstAttribute>(attribute));
+                }
+            }
+
+            // Add the relation to the program
             program.appendRelation(std::move(newRelation));
+
+            // --- Construct the associated clause ---
 
             // TODO: create the clause with the necessary head arguments
             // TODO: add associated body literals
